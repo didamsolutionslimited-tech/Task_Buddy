@@ -78,11 +78,14 @@ export default function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      if (method === 'email') {
-        await authApi.sendEmailOTP(email.trim());
-      } else {
-        await authApi.sendOTP(phone);
-      }
+      const response =
+        method === 'email'
+          ? await authApi.sendEmailOTP(email.trim())
+          : await authApi.sendOTP(phone);
+      // OTP_DEBUG mode: the server echoes the code so flows can be tested before
+      // real email/SMS delivery is configured. Pre-fill it for convenience.
+      const debugOtp = response?.data?.debug_otp;
+      if (debugOtp) setOtp(String(debugOtp));
       setStep('otp');
     } catch (err: any) {
       const message = err?.response?.data?.error || 'Failed to send OTP. Try again.';

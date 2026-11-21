@@ -25,7 +25,7 @@ export const sendOTP = async (req: Request, res: Response) => {
   }
 
   if (email) {
-    if (!isEmailConfigured) {
+    if (!isEmailConfigured && !OTP_DEBUG) {
       return res.status(500).json({ error: 'Email sending is not configured on the server' });
     }
 
@@ -48,8 +48,11 @@ export const sendOTP = async (req: Request, res: Response) => {
       }
     } catch (err: any) {
       console.error('[Email Gateway] Failed to send OTP:', err?.message || err);
-      otpStore.delete(email);
-      return res.status(500).json({ error: 'Failed to send OTP email. Please try again.' });
+      if (!OTP_DEBUG) {
+        otpStore.delete(email);
+        return res.status(500).json({ error: 'Failed to send OTP email. Please try again.' });
+      }
+      console.warn('[Email Gateway] OTP_DEBUG is on — leaving code valid so the flow can be tested.');
     }
 
     return res.json({ message: 'OTP sent successfully', channel: 'email', sent_to: email, ...(OTP_DEBUG ? { debug_otp: otp } : {}) });
@@ -66,8 +69,11 @@ export const sendOTP = async (req: Request, res: Response) => {
       await sendOTPSms(phone_number, otp);
     } catch (err: any) {
       console.error('[SMS Gateway] Failed to send OTP:', err?.message || err);
-      otpStore.delete(phone_number);
-      return res.status(500).json({ error: 'Failed to send OTP by SMS. Please try again.' });
+      if (!OTP_DEBUG) {
+        otpStore.delete(phone_number);
+        return res.status(500).json({ error: 'Failed to send OTP by SMS. Please try again.' });
+      }
+      console.warn('[SMS Gateway] OTP_DEBUG is on — leaving code valid so the flow can be tested.');
     }
   } else {
     console.log(`[SMS Gateway] Sending OTP ${otp} to ${phone_number}`);
