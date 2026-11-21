@@ -27,10 +27,10 @@ const Toast = ({ text }: { text: string | null }) =>
 const HeroSlides = () => {
   // Local taskers helping clients — swap or add images in website/public/
   const slides = [
-    { src: '/slide-1-cleaning.jpg', alt: 'Local Tasker Helping a Client — Home cleaning' },
-    { src: '/slide-2-electrician.jpg', alt: 'Local Tasker Helping a Client — Electrical repairs' },
-    { src: '/slide-3-home.jpg', alt: 'Local Tasker Helping a Client — House upkeep' },
-    { src: '/slide-4-handyman.jpg', alt: 'Local Tasker Helping a Client — Handyman fixes' },
+    { src: '/slide-1-furniture.jpg', alt: 'Local Tasker Helping a Client — Furniture moving and delivery' },
+    { src: '/slide-2-autorepair.jpg', alt: 'Local Tasker Helping a Client — Roadside auto repair' },
+    { src: '/slide-3-delivery.jpg', alt: 'Local Tasker Helping a Client — Groceries delivery' },
+    { src: '/slide-4-team.jpg', alt: 'Local Tasker Helping a Client — Task Buddy team on the job' },
   ];
   const [idx, setIdx] = useState(0);
 
