@@ -55,7 +55,17 @@ app.get('/db-test', async (req, res) => {
     await pool.query('SELECT NOW()');
     res.json({ status: 'connected', time: new Date().toISOString() });
   } catch (err: any) {
-    res.status(500).json({ status: 'error', message: err.message });
+    let dbHost = '';
+    try { dbHost = new URL(process.env.DATABASE_URL || '').host || ''; } catch { /* not a URL */ }
+    res.status(500).json({
+      status: 'error',
+      message: err?.message || '',
+      name: err?.name || '',
+      code: err?.code || (err?.errors?.[0]?.code ?? ''),
+      inner: (err?.errors || []).map((e: any) => ({ message: e?.message, code: e?.code })),
+      dbConfigured: Boolean(process.env.DATABASE_URL),
+      dbHost,
+    });
   }
 });
 
