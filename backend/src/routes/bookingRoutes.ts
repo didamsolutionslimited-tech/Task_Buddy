@@ -1,6 +1,6 @@
 ﻿import { Router } from 'express';
 import { acceptTask, confirmCompletion } from '../controllers/bookingController';
-import { initializePayment, verifyPayment } from '../controllers/paymentController';
+import { initializePayment, verifyPayment, quotePayment } from '../controllers/paymentController';
 import { authOptional } from '../middleware/auth';
 
 const router = Router();
@@ -10,6 +10,7 @@ router.post('/accept', authOptional, acceptTask);
 router.post('/complete', authOptional, confirmCompletion);
 
 // Payment routes
+router.post('/pay/quote', quotePayment);
 router.post('/pay/init', initializePayment);
 router.post('/pay/verify', verifyPayment);
 

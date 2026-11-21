@@ -59,10 +59,16 @@ The link between a Task and a Tasker.
 
 ### 6. Payments
 Transaction records via Paystack/Flutterwave.
+
+Billing model: the client pays `amount` = task price + service fee (10%) + VAT (7.5% of the service fee) + urgency fee (≥₦2,000 for urgent jobs). The tasker is paid the full task price.
+
 - `id`: UUID (PK)
 - `booking_id`: UUID (FK -> Bookings.id)
-- `amount`: Decimal
-- `platform_fee`: Decimal
+- `amount`: Decimal — total charged to the client (task price + all fees)
+- `platform_fee`: Decimal — 10% service fee on the task price
+- `vat`: Decimal — 7.5% VAT on the platform fee (government tax law)
+- `urgency_fee`: Decimal — surcharge for urgent/priority jobs (₦0 if standard)
+- `tasker_payout`: Decimal — what the tasker receives (the full task price)
 - `transaction_ref`: String (External Gateway Ref)
 - `payment_status`: Enum ('pending', 'paid', 'failed', 'refunded')
 - `created_at`: Timestamp

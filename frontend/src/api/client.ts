@@ -34,7 +34,10 @@ export const taskApi = {
 
 export const bookingApi = {
   acceptTask: (taskId: string, taskerId: string) => api.post('/bookings/accept', { task_id: taskId, tasker_id: taskerId }),
-  initPayment: (bookingId: string, amount: number) => api.post('/bookings/pay/init', { booking_id: bookingId, amount }),
+  quotePayment: (amount: number, urgent: boolean, urgencyFee?: number) =>
+    api.post('/bookings/pay/quote', { amount, urgent, urgency_fee: urgencyFee }),
+  initPayment: (bookingId: string, amount: number, urgent = false, urgencyFee?: number) =>
+    api.post('/bookings/pay/init', { booking_id: bookingId, amount, urgent, urgency_fee: urgencyFee }),
   verifyPayment: (reference: string) => api.post('/bookings/pay/verify', { reference }),
 };
 
