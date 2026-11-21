@@ -24,6 +24,67 @@ const Toast = ({ text }: { text: string | null }) =>
   ) : null;
 
 
+const HeroSlides = () => {
+  // Local taskers helping clients — swap or add images in website/public/
+  const slides = [
+    { src: '/slide-1-cleaning.jpg', alt: 'Local Tasker Helping a Client — Home cleaning' },
+    { src: '/slide-2-electrician.jpg', alt: 'Local Tasker Helping a Client — Electrical repairs' },
+    { src: '/slide-3-home.jpg', alt: 'Local Tasker Helping a Client — House upkeep' },
+    { src: '/slide-4-handyman.jpg', alt: 'Local Tasker Helping a Client — Handyman fixes' },
+  ];
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), 3500);
+    return () => clearInterval(t);
+  }, [slides.length]);
+
+  return (
+    <div className="w-full h-[400px] relative rounded-3xl overflow-hidden shadow-2xl">
+      {slides.map((s, i) => (
+        <img
+          key={s.src}
+          src={s.src}
+          alt={s.alt}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${i === idx ? 'opacity-100' : 'opacity-0'}`}
+        />
+      ))}
+      <button
+        aria-label="Previous slide"
+        onClick={() => setIdx((idx - 1 + slides.length) % slides.length)}
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 hover:bg-white text-buddy-dark text-xl font-bold leading-none shadow flex items-center justify-center transition"
+      >
+        ‹
+      </button>
+      <button
+        aria-label="Next slide"
+        onClick={() => setIdx((idx + 1) % slides.length)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 hover:bg-white text-buddy-dark text-xl font-bold leading-none shadow flex items-center justify-center transition"
+      >
+        ›
+      </button>
+      <div className="absolute bottom-16 left-0 right-0 flex items-center justify-center gap-2">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            aria-label={`Go to slide ${i + 1}`}
+            onClick={() => setIdx(i)}
+            className={`h-2 w-2 rounded-full transition ${i === idx ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/70'}`}
+          />
+        ))}
+      </div>
+      <div className="absolute bottom-4 left-4 right-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg flex items-center gap-4">
+        <div className="w-10 h-10 bg-buddy-blue rounded-full flex items-center justify-center text-white">✓</div>
+        <div>
+          <p className="text-sm font-bold text-buddy-dark dark:text-white">Verified Pro Assigned</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Coming to your location in 15 mins</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const Hero = (props: {
   query: string;
   setQuery: (v: string) => void;
@@ -59,18 +120,7 @@ const Hero = (props: {
         </div>
       </div>
       <div className="flex-1 relative">
-        <div className="w-full h-[400px] bg-gray-100 dark:bg-gray-800 rounded-3xl overflow-hidden relative shadow-2xl">
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-500 font-medium">
-             [Image: Local Tasker Helping a Client]
-          </div>
-          <div className="absolute bottom-4 left-4 right-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg flex items-center gap-4">
-             <div className="w-10 h-10 bg-buddy-blue rounded-full flex items-center justify-center text-white">✓</div>
-             <div>
-                <p className="text-sm font-bold text-buddy-dark dark:text-white">Verified Pro Assigned</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Coming to your location in 15 mins</p>
-             </div>
-          </div>
-        </div>
+        <HeroSlides />
       </div>
     </div>
   </section>
