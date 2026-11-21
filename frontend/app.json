@@ -31,6 +31,12 @@
     "plugins": [
       "expo-status-bar",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6383070f-ac0d-497a-a81e-0a305e918299"
+      }
+    },
+    "owner": "didamsolutions"
   }
 }
