@@ -2,9 +2,10 @@
   "expo": {
     "name": "Task Buddy",
     "slug": "task-buddy",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "com.taskbuddy.app",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -17,7 +18,7 @@
     },
     "android": {
       "package": "com.taskbuddy.app",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#1B72D8",
         "foregroundImage": "./assets/icon.png",

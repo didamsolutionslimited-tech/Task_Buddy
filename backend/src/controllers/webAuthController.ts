@@ -9,6 +9,27 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const SITE_URL = process.env.SITE_URL || 'http://localhost:3000';
 const API_URL = process.env.API_URL || 'http://localhost:5000';
+const GOOGLE_CALLBACK_PATH = '/api/web-auth/google/callback';
+// Where OAuth hands the JWT back when the flow was started for the mobile app
+const APP_DEEP_LINK = (process.env.APP_DEEP_LINK || 'com.taskbuddy.app://auth/callback').replace(/\/+$/, '');
+
+// Short-lived store mapping OAuth state -> requesting client (single-instance dev/prod is fine)
+const clientState = new Map<string, { platform: 'web' | 'mobile'; expiresAt: number }>();
+const CLIENT_STATE_TTL_MS = 10 * 60 * 1000;
+const rememberClientState = (state: string, platform: 'web' | 'mobile') => {
+  const cutoff = Date.now();
+  for (const [k, v] of clientState) if (v.expiresAt < cutoff) clientState.delete(k);
+  clientState.set(state, { platform, expiresAt: cutoff + CLIENT_STATE_TTL_MS });
+};
+const takeClientState = (state: string): ('web' | 'mobile') | null => {
+  const entry = clientState.get(state);
+  if (!entry || entry.expiresAt < Date.now()) {
+    clientState.delete(state);
+    return null;
+  }
+  clientState.delete(state);
+  return entry.platform;
+};
 
 /** POST /api/auth/register  { full_name, email, password, phone? } */
 export const register = async (req: Request, res: Response) => {
@@ -68,18 +89,20 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-/** GET /api/auth/google — kicks off OAuth (or reports not configured) */
-export const googleStart = async (_req: Request, res: Response) => {
+/** GET /api/web-auth/google — kicks off OAuth (or reports not configured) */
+export const googleStart = async (req: Request, res: Response) => {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     return res.status(501).json({
       error: 'Google sign-in is not configured on the server yet.',
-      how_to: 'Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env (Google Cloud console → OAuth client, redirect = ' + API_URL + '/api/auth/google/callback)',
+      how_to: 'Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env (Google Cloud console → OAuth client, redirect = ' + API_URL + GOOGLE_CALLBACK_PATH + ')',
     });
   }
+  const requested = (req.query.platform as string) === 'mobile' ? 'mobile' : 'web';
   const state = crypto.randomBytes(10).toString('hex');
+  rememberClientState(state, requested);
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: `${API_URL}/api/auth/google/callback`,
+    redirect_uri: `${API_URL}${GOOGLE_CALLBACK_PATH}`,
     response_type: 'code',
     scope: 'openid email profile',
     state,
@@ -88,7 +111,7 @@ export const googleStart = async (_req: Request, res: Response) => {
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 };
 
-/** GET /api/auth/google/callback — exchanges code, upserts user, delivers token */
+/** GET /api/web-auth/google/callback — exchanges code, upserts user, delivers token */
 export const googleCallback = async (req: Request, res: Response) => {
   const code = (req.query.code as string) || '';
   if (!code) return res.status(400).send('Missing authorization code');
@@ -96,6 +119,8 @@ export const googleCallback = async (req: Request, res: Response) => {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     return res.status(501).send('Google sign-in is not configured on the server.');
   }
+
+  const platform = takeClientState((req.query.state as string) || '') || 'web';
 
   try {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -105,7 +130,7 @@ export const googleCallback = async (req: Request, res: Response) => {
         code,
         client_id: GOOGLE_CLIENT_ID,
         client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${API_URL}/api/auth/google/callback`,
+        redirect_uri: `${API_URL}${GOOGLE_CALLBACK_PATH}`,
         grant_type: 'authorization_code',
       }),
     });
@@ -131,7 +156,11 @@ export const googleCallback = async (req: Request, res: Response) => {
     }
     const user = rows[0];
     const token = signToken(user);
-    res.redirect(`${SITE_URL}/auth/callback?t=${encodeURIComponent(token)}`);
+    if (platform === 'mobile') {
+      res.redirect(`${APP_DEEP_LINK}?t=${encodeURIComponent(token)}`);
+    } else {
+      res.redirect(`${SITE_URL}/auth/callback?t=${encodeURIComponent(token)}`);
+    }
   } catch (err: any) {
     console.error('google callback failed:', err?.message);
     res.status(500).send('Google sign-in failed');

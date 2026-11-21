@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Image, StyleSheet, Pressable, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, Image, StyleSheet, Pressable, Alert, Linking } from 'react-native';
 import { Button } from '../components/Button';
 import { authApi } from '../api/client';
+import apiClient from '../api/client';
+import { API_URL, API_BASE } from '../api/config';
 import { brand, headingFont, headingFontBold } from '../theme';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const navigateByRole = (navigation: any, user: any) => {
+  if (user?.role === 'tasker') {
+    navigation?.navigate('TaskerDashboard', { user, me: user.email || user.phone_number });
+  } else if (user?.role === 'admin') {
+    navigation?.navigate('AdminDashboard', { user });
+  } else {
+    navigation?.navigate('ClientDashboard', { user, me: user.email || user.phone_number });
+  }
+};
 
 export default function LoginScreen({ navigation }: any) {
   const [method, setMethod] = useState<'email' | 'phone'>('email');
@@ -13,6 +25,45 @@ export default function LoginScreen({ navigation }: any) {
   const [step, setStep] = useState<'identifier' | 'otp'>('identifier');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Google sign-in: the server runs the OAuth flow in the system browser and
+  // hands the JWT back via com.taskbuddy.app://auth/callback?t=<token>.
+  const handleGoogleSignIn = async () => {
+    try {
+      await Linking.openURL(`${API_URL}/web-auth/google?platform=mobile`);
+    } catch (err: any) {
+      Alert.alert('Error', 'Could not open the sign-in page. Please try again.');
+    }
+  };
+
+  useEffect(() => {
+    const finishGoogleSignIn = async (url: string) => {
+      if (!url || !url.includes('auth/callback')) return;
+      const match = url.match(/[?&]t=([^&]+)/);
+      if (!match) return;
+      setLoading(true);
+      try {
+        const res = await apiClient.get('/web-auth/me', {
+          baseURL: API_BASE,
+          headers: { Authorization: `Bearer ${decodeURIComponent(match[1])}` },
+        });
+        navigateByRole(navigation, res?.data?.user);
+      } catch (err: any) {
+        Alert.alert('Error', err?.response?.data?.error || 'Google sign-in failed. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      finishGoogleSignIn(url);
+    });
+    Linking.getInitialURL().then((url) => {
+      if (url) finishGoogleSignIn(url);
+    });
+    return () => sub.remove();
+  }, [navigation]);
+
 
   const handleSendOTP = async () => {
     if (method === 'email') {
@@ -131,7 +182,25 @@ export default function LoginScreen({ navigation }: any) {
       <Button
         title={step === 'identifier' ? 'Send Code' : 'Verify & Login'}
         onPress={step === 'identifier' ? handleSendOTP : handleVerifyOTP}
+        disabled={loading}
       />
+
+      {step === 'identifier' && (
+        <View style={styles.dividerRow}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.divider} />
+        </View>
+      )}
+
+      {step === 'identifier' && (
+        <Button
+          variant="secondary"
+          title="Continue with Google"
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+        />
+      )}
 
       {step === 'otp' && (
         <Button
@@ -202,5 +271,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
     textAlign: 'center',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    marginBottom: 16,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    color: brand.gray,
+    fontSize: 13,
   },
 });
