@@ -2,8 +2,13 @@ import { Request, Response } from 'express';
 import pool from '../config/db';
 import { UserRole } from '../models/User';
 import { sendOTPEmail, isEmailConfigured } from '../services/emailService';
+import { sendOTPSms, isSmsConfigured } from '../services/smsService';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const OTP_DEBUG = String(process.env.OTP_DEBUG || '').toLowerCase() === 'true';
 
 // Mock OTP store - In production, use Redis with TTL
 const otpStore = new Map<string, { otp: string, expiresAt: number, resends?: number }>();
@@ -47,19 +52,28 @@ export const sendOTP = async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Failed to send OTP email. Please try again.' });
     }
 
-    return res.json({ message: 'OTP sent successfully', channel: 'email', sent_to: email });
+    return res.json({ message: 'OTP sent successfully', channel: 'email', sent_to: email, ...(OTP_DEBUG ? { debug_otp: otp } : {}) });
   }
 
-  // Phone flow (SMS) - not yet wired to an SMS gateway
+  // Phone flow (SMS) - Termii gateway when TERMII_API_KEY is set, console stub otherwise
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
   otpStore.set(phone_number, { otp, expiresAt });
 
-  // INTEGRATION POINT: Here you would call your SMS Gateway (e.g., Twilio, Termii)
-  console.log(`[SMS Gateway] Sending OTP ${otp} to ${phone_number}`);
+  if (isSmsConfigured) {
+    try {
+      await sendOTPSms(phone_number, otp);
+    } catch (err: any) {
+      console.error('[SMS Gateway] Failed to send OTP:', err?.message || err);
+      otpStore.delete(phone_number);
+      return res.status(500).json({ error: 'Failed to send OTP by SMS. Please try again.' });
+    }
+  } else {
+    console.log(`[SMS Gateway] Sending OTP ${otp} to ${phone_number}`);
+  }
 
-  res.json({ message: 'OTP sent successfully', channel: 'sms', sent_to: phone_number });
+  res.json({ message: 'OTP sent successfully', channel: 'sms', sent_to: phone_number, ...(OTP_DEBUG ? { debug_otp: otp } : {}) });
 };
 
 export const verifyOTP = async (req: Request, res: Response) => {
