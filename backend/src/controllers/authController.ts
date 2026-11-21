@@ -33,8 +33,9 @@ export const sendOTP = async (req: Request, res: Response) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-    // Rate-limit: max 3 requests per email
-    const resends = otpStore.get(email)?.resends ?? 0;
+    // Rate-limit: max 3 requests per email within the code's validity window
+    const stored = otpStore.get(email);
+    const resends = stored && Date.now() < stored.expiresAt ? stored.resends ?? 0 : 0;
     if (resends >= 3) {
       return res.status(429).json({ error: 'Too many OTP requests. Please wait a few minutes and try again.' });
     }
