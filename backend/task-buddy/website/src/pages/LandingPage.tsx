@@ -26,9 +26,13 @@ const Toast = ({ text }: { text: string | null }) =>
 
 const HeroSlides = () => {
   // Local taskers helping clients — swap or add images in website/public/
+  // slide-market-*.jpg: Wikimedia Commons (Lagos, Nigeria), CC-licensed with attribution in filenames:
+  // "A fruits seller in Lagos Nigeria" / "A lady hawking snacks in lagos Nigeria"
   const slides = [
     { src: '/slide-1-furniture.jpg', alt: 'Local Tasker Helping a Client — Furniture moving and delivery' },
+    { src: '/slide-market-fruits.jpg', alt: 'Fruit market vendors in Lagos, Nigeria' },
     { src: '/slide-2-autorepair.jpg', alt: 'Local Tasker Helping a Client — Roadside auto repair' },
+    { src: '/slide-market-hawker.jpg', alt: 'Snack hawker walking through a Lagos market' },
     { src: '/slide-3-delivery.jpg', alt: 'Local Tasker Helping a Client — Groceries delivery' },
     { src: '/slide-4-team.jpg', alt: 'Local Tasker Helping a Client — Task Buddy team on the job' },
   ];
