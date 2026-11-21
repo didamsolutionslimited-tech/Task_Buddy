@@ -9,7 +9,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://task-buddy.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://task-buddy-35mv.onrender.com"
       }
     },
     "development": {
@@ -23,7 +23,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://task-buddy-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://task-buddy-35mv.onrender.com"
       }
     }
   },
