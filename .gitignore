@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output (Render compiles it)
+backend/dist/
+
+# Environment - NEVER commit (contains DB password, JWT secret, Paystack keys)
+backend/.env
+
+# Uploaded KYC documents - NEVER commit (personal data)
+backend/uploads/
+
+# Expo
+frontend/.expo/
+frontend/node_modules/
+
+# OS
+Thumbs.db
+.DS_Store

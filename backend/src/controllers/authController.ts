@@ -1,0 +1,113 @@
+import { Request, Response } from 'express';
+import pool from '../config/db';
+import { UserRole } from '../models/User';
+import { sendOTPEmail, isEmailConfigured } from '../services/emailService';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Mock OTP store - In production, use Redis with TTL
+const otpStore = new Map<string, { otp: string, expiresAt: number, resends?: number }>();
+
+export const sendOTP = async (req: Request, res: Response) => {
+  const { phone_number, email } = req.body || {};
+
+  if (!phone_number && !email) {
+    return res.status(400).json({ error: 'Email address or phone number is required' });
+  }
+
+  if (email && !EMAIL_REGEX.test(email)) {
+    return res.status(400).json({ error: 'Please provide a valid email address' });
+  }
+
+  if (email) {
+    if (!isEmailConfigured) {
+      return res.status(500).json({ error: 'Email sending is not configured on the server' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    // Rate-limit: max 3 requests per email
+    const resends = otpStore.get(email)?.resends ?? 0;
+    if (resends >= 3) {
+      return res.status(429).json({ error: 'Too many OTP requests. Please wait a few minutes and try again.' });
+    }
+
+    otpStore.set(email, { otp, expiresAt, resends: resends + 1 });
+
+    try {
+      const { previewUrl } = await sendOTPEmail(email, otp);
+      if (previewUrl) {
+        console.log(`[Email] View the OTP for ${email} here: ${previewUrl}`);
+      }
+    } catch (err: any) {
+      console.error('[Email Gateway] Failed to send OTP:', err?.message || err);
+      otpStore.delete(email);
+      return res.status(500).json({ error: 'Failed to send OTP email. Please try again.' });
+    }
+
+    return res.json({ message: 'OTP sent successfully', channel: 'email', sent_to: email });
+  }
+
+  // Phone flow (SMS) - not yet wired to an SMS gateway
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+  otpStore.set(phone_number, { otp, expiresAt });
+
+  // INTEGRATION POINT: Here you would call your SMS Gateway (e.g., Twilio, Termii)
+  console.log(`[SMS Gateway] Sending OTP ${otp} to ${phone_number}`);
+
+  res.json({ message: 'OTP sent successfully', channel: 'sms', sent_to: phone_number });
+};
+
+export const verifyOTP = async (req: Request, res: Response) => {
+  const { phone_number, email, otp } = req.body || {};
+
+  if ((!phone_number && !email) || !otp) {
+    return res.status(400).json({ error: 'Email address or phone number, and OTP are required' });
+  }
+
+  const identifier = email || phone_number;
+  const stored = otpStore.get(identifier);
+
+  if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
+    return res.status(400).json({ error: 'Invalid or expired OTP' });
+  }
+
+  // Remove OTP after successful verification
+  otpStore.delete(identifier);
+
+  try {
+    // Check if user exists, otherwise create them as a client by default
+    const column = email ? 'email' : 'phone_number';
+    let userResult = await pool.query(`SELECT * FROM users WHERE ${column} = $1`, [identifier]);
+    let user = userResult.rows[0];
+
+    if (!user) {
+      const insertSql = email
+        ? 'INSERT INTO users (email, role, is_verified) VALUES ($1, $2, $3) RETURNING *'
+        : 'INSERT INTO users (phone_number, role, is_verified) VALUES ($1, $2, $3) RETURNING *';
+      const newUserResult = await pool.query(insertSql, [identifier, UserRole.CLIENT, false]);
+      user = newUserResult.rows[0];
+    }
+
+    // TODO: generate a real JWT in a production build
+    const token = 'mock-jwt-token-for-' + user.id;
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        phone_number: user.phone_number,
+        email: user.email,
+        role: user.role,
+        is_verified: user.is_verified
+      }
+    });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error during verification' });
+  }
+};

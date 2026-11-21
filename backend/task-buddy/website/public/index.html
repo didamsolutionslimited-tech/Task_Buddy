@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1B72D8" />
+    <meta name="description" content="Task Buddy - The most trusted way to get things done in Africa." />
+    <title>Task Buddy | Professional Home Services</title>
+    <link rel="icon" href="/task-buddy-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script
+      src="https://cdn.tailwindcss.com"
+      data-allowed-hosts="cdn.tailwindcss.com"
+    ></script>
+    <script>
+      // Task Buddy brand tokens (from the logo) + rounded sans-serif type
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'buddy-blue': '#1B72D8',
+              'buddy-cyan': '#29ABE2',
+              'buddy-orange': '#F2801E',
+              'buddy-amber': '#FBB03B',
+              'buddy-dark': '#1a1a1a',
+            },
+            fontFamily: {
+              sans: ['Nunito', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              heading: ['Nunito', 'ui-sans-serif', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-gray-50">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
